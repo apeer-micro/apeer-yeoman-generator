@@ -1,0 +1,16 @@
+{
+  "name": "generator-apeer",
+  "version": "1.0.0",
+  "description": "",
+  "keywords": [
+    "yeoman-generator"
+  ],
+  "author": "Thomas Irmer",
+  "license": "MIT",
+  "files": [
+    "generators"
+  ],
+  "dependencies": {
+    "yeoman-generator": "^3.2.0"
+  }
+}

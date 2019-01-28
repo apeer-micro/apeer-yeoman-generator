@@ -63,12 +63,9 @@ module.exports = class extends Generator {
                 { name: 'Add a requirement', value: 'requirements' },
                 { name: 'Done', value: 'done' }
             ],
-            default: 'input',
-            store: true
+            default: 'input'
         }, {
-            when: function (answers) {
-                return answers.spec_item == 'inputs'
-            },
+            when: answers => answers.spec_item == 'inputs',
             type: 'list',
             name: 'spec_item_type',
             message: 'What kind of input',
@@ -83,12 +80,9 @@ module.exports = class extends Generator {
                 { name: 'Yes/no choice', value: 'type:choice_binary' },
                 { name: 'Single choice', value: 'type:choice_single' },
             ],
-            default: 'file',
-            store: true
+            default: 'file'
         }, {
-            when: function (answers) {
-                return answers.spec_item == 'outputs'
-            },
+            when: answers => answers.spec_item == 'outputs',
             type: 'list',
             name: 'spec_item_type',
             message: 'What kind of output',
@@ -101,20 +95,15 @@ module.exports = class extends Generator {
                 { name: 'List of floating point numbers', value: 'type:list[number]' },
                 { name: 'Numerical range', value: 'type:range' },
             ],
-            default: 'file',
-            store: true
+            default: 'file'
         }, {
-            when: function (answers) {
-                return answers.spec_item == 'inputs' || answers.spec_item == 'outputs';
-            },
+            when: answers => answers.spec_item == 'inputs' || answers.spec_item == 'outputs',
             type: 'input',
             name: 'spec_item_name',
             message: 'What is the name',
             // TODO: validate input name
         }, {
-            when: function (answers) {
-                return answers.spec_item == 'requirements'
-            },
+            when: answers => answers.spec_item == 'requirements',
             type: 'list',
             name: 'spec_item_type',
             message: 'What kind of requirement',
@@ -123,13 +112,59 @@ module.exports = class extends Generator {
                 { name: 'Internet access', value: 'internet_access' }
             ]
         }, {
-            when: function (answers) {
-                return answers.spec_item_type == 'type:file';
-            },
+            when: answers => answers.spec_item_type == 'type:file' || answers.spec_item_type == 'type:list[file]',
             type: 'checkbox',
             name: 'file_formats',
             message: 'Select the supported file types',
+            // TODO add all supported file types
             choices: ['jpg', 'png', 'tif', 'czi'],
+        }, {
+            when: answers => answers.spec_item == 'inputs' && answers.spec_item_type == 'type:string',
+            type: 'input',
+            name: 'string_default',
+            message: 'Default value'
+        }, {
+            when: answers => answers.spec_item == 'inputs' && answers.spec_item_type == 'type:integer',
+            type: 'input',
+            name: 'integer_default',
+            message: 'Default value',
+            filter: answer => Number(answer),
+            // TODO validate it's a **integer**
+            // validate: answer =>
+        }, {
+            when: answers => answers.spec_item == 'inputs' && answers.spec_item_type == 'type:number',
+            type: 'input',
+            name: 'number_default',
+            message: 'Default value',
+            filter: answer => Number(answer),
+            // TODO validate it's a number
+            // validate: answer =>
+        }, {
+            when: answers => answers.spec_item == 'inputs' && answers.spec_item_type == 'type:range',
+            type: 'input',
+            name: 'range_default',
+            message: 'Default min value, default max value (e.g. 3.14, 47.11)',
+            filter: answer => { return {
+                lower_inclusive: Number(answer.split(',')[0].trim()),
+                upper_inclusive: Number(answer.split(',')[1].trim())
+            }}
+            // TODO validate it's two comma-seperated numbers
+            // validate: answer =>
+        }, {
+            when: answers => answers.spec_item == 'inputs' && answers.spec_item_type == 'type:choice_binary',
+            type: 'input',
+            name: 'choice_binary_default',
+            message: 'Default value (true or false)',
+            filter: answer => Boolean(answer)
+            // TODO validate it's boolean
+            // validate: answer =>
+        }, {
+            when: answers => answers.spec_item == 'inputs' && answers.spec_item_type == 'type:choice_single',
+            type: 'input',
+            name: 'choice_single_default',
+            message: 'Default value'
+            // TODO validate it's one of the choice names
+            // validate: answer =>
         }]);
 
         const done = this.async();
@@ -140,8 +175,10 @@ module.exports = class extends Generator {
             }
             switch (answers.spec_item) {
                 case 'inputs':
+                    this._add_input(answers);
+                    break;
                 case 'outputs':
-                    this._add_parameter(answers);
+                    this._add_output(answers);
                     break;
                 case 'requirements':
                     this._add_requirement(answers);
@@ -158,15 +195,39 @@ module.exports = class extends Generator {
             this.module_spec.requirements.network[answers.spec_item_type] = {};
     }
 
-    _add_parameter(answers) {
-        this.module_spec.spec[answers.spec_item][answers.spec_item_name] = {};
-        this.module_spec.spec[answers.spec_item][answers.spec_item_name][answers.spec_item_type] = {};
+    _add_input(answers) {
+        const parameter = this._add_parameter(answers);
 
-        if (answers.spec_item_type == 'type:file') {
-            this.module_spec.spec[answers.spec_item][answers.spec_item_name][answers.spec_item_type] = {
+        if (answers.spec_item_type == 'type:string') {
+            parameter['default'] = answers.string_default;
+        } else if (answers.spec_item_type == 'type:integer') {
+            parameter['default'] = answers.integer_default;
+        } else if (answers.spec_item_type == 'type:number') {
+            parameter['default'] = answers.number_default;
+        } else if (answers.spec_item_type == 'type:range') {
+            parameter['default'] = answers.range_default;
+        } else if (answers.spec_item_type == 'type:choice_binary') {
+            parameter['default'] = answers.choice_binary_default;
+        } else if (answers.spec_item_type == 'type:choice_single') {
+            parameter['default'] = answers.choice_single_default;
+        }
+    }
+
+    _add_output(answers) {
+        this._add_parameter(answers);
+    }
+
+    _add_parameter(answers) {
+        const parameter = this.module_spec.spec[answers.spec_item][answers.spec_item_name] = {};
+        parameter[answers.spec_item_type] = answers.spec_item_type == 'type:choice_binary' ? null : {};
+
+        if (answers.spec_item_type == 'type:file' || answers.spec_item_type == 'type:list[file]') {
+            parameter[answers.spec_item_type] = {
                 format: answers.file_formats
             };
-        };
+        }
+
+        return parameter
     }
 
     configuring() { }

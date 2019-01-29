@@ -117,7 +117,17 @@ module.exports = class extends Generator {
             name: 'file_formats',
             message: 'Select the supported file types',
             // TODO add all supported file types
-            choices: ['jpg', 'png', 'tif', 'czi'],
+            choices: [
+                { name: 'CZI', value: 'czi' },
+                { name: 'TIFF', value: 'tiff' },
+                { name: 'OME-TIFF', value: 'ome-tiff' },
+                { name: 'PNG', value: 'png' },
+                { name: 'JPEG', value: 'jpeg' },
+                { name: 'CSV', value: 'csv' },
+                { name: 'PDF', value: 'pdf' },
+                { name: 'HTML', value: 'html' },
+                { name: 'XML', value: 'xml' }
+            ],
         }, {
             when: answers => answers.spec_item == 'inputs' && answers.spec_item_type == 'type:string',
             type: 'input',
@@ -163,7 +173,6 @@ module.exports = class extends Generator {
             name: 'choice_single_default',
             message: 'Default value'
             // TODO validate it's one of the choice names
-            // validate: answer =>
         }]);
 
         // Recursively ask for further properties in the specification
@@ -202,6 +211,10 @@ module.exports = class extends Generator {
             parameter['default'] = answers.string_default;
         } else if (answers.spec_item_type == 'type:integer') {
             parameter['default'] = answers.integer_default;
+            this.log('int_min: ');
+            this.log(answers.integer_min);
+            this.log('int_max: ');
+            this.log(answers.integer_max);
         } else if (answers.spec_item_type == 'type:number') {
             parameter['default'] = answers.number_default;
         } else if (answers.spec_item_type == 'type:range') {
@@ -231,7 +244,7 @@ module.exports = class extends Generator {
     }
 
     _is_number(candidate) {
-        return !isNaN(candidate);
+        return !isNaN(candidate) && candidate !== undefined;
     }
 
     _is_integer(candidate) {

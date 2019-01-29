@@ -162,15 +162,29 @@ module.exports = class extends Generator {
             filter: answer => this._is_number(answer) ? Number(answer) : answer,
             validate: answer => this._is_number(answer) ? true : 'Not a number'
         }, {
+            when: answers => answers.spec_item == 'inputs' && answers.spec_item_type == 'type:number',
+            type: 'input',
+            name: 'number_min',
+            message: 'Lower bound (leave blank if unconstrained)',
+            filter: answer => this._is_number(answer) ? Number(answer) : answer,
+            validate: answer => this._is_number(answer) || (answer === '') ? true : 'Not an integer or blank'
+        }, {
+            when: answers => answers.spec_item == 'inputs' && answers.spec_item_type == 'type:number',
+            type: 'input',
+            name: 'number_max',
+            message: 'Upper bound (leave blank if unconstrained)',
+            filter: answer => this._is_number(answer) ? Number(answer) : answer,
+            validate: answer => this._is_number(answer) || (answer === '') ? true : 'Not a number or blank'
+        }, {
             when: answers => answers.spec_item == 'inputs' && answers.spec_item_type == 'type:range',
             type: 'input',
             name: 'range_default',
-            message: 'Default min value, default max value (e.g. 3.14, 47.11)',
+            message: 'Default min,max (e.g. 3.14,47.11)',
             filter: answer => this._is_number_tuple(answer) ? {
                 lower_inclusive: Number(answer.split(',')[0]),
                 upper_inclusive: Number(answer.split(',')[1])
             } : answer,
-            validate: answer => this._is_number_tuple(answer) ? true : 'Invalid min,max'
+            validate: answer => (typeof answer === 'object') || this._is_number_tuple(answer) ? true : 'Invalid min,max'
         }, {
             when: answers => answers.spec_item == 'inputs' && answers.spec_item_type == 'type:choice_binary',
             type: 'list',
@@ -186,7 +200,13 @@ module.exports = class extends Generator {
             type: 'input',
             name: 'choice_single_default',
             message: 'Default value'
-            // TODO validate it's one of the choice names
+        }, {
+            when: answers => answers.spec_item == 'inputs' && answers.spec_item_type == 'type:choice_single',
+            type: 'input',
+            name: 'choice_single_values',
+            message: 'Possible values as comma-seperated list (e.g. option1, option2, ...)',
+            filter: answer => answer.split(',')
+            // TODO validate list format
         }]);
 
         // Recursively ask for further properties in the specification
@@ -229,12 +249,17 @@ module.exports = class extends Generator {
             parameter[answers.spec_item_type]['max'] = answers.integer_max !== '' ? answers.integer_max : undefined;
         } else if (answers.spec_item_type == 'type:number') {
             parameter['default'] = answers.number_default;
+            parameter[answers.spec_item_type]['lower_inclusive'] = answers.number_min !== '' ? answers.number_min : undefined;
+            parameter[answers.spec_item_type]['upper_inclusive'] = answers.number_max !== '' ? answers.number_max : undefined;
         } else if (answers.spec_item_type == 'type:range') {
             parameter['default'] = answers.range_default;
         } else if (answers.spec_item_type == 'type:choice_binary') {
             parameter['default'] = answers.choice_binary_default;
         } else if (answers.spec_item_type == 'type:choice_single') {
             parameter['default'] = answers.choice_single_default;
+            answers.choice_single_values.forEach(function (element) {
+                parameter[answers.spec_item_type].push(element);
+            });
         }
     }
 
@@ -245,6 +270,7 @@ module.exports = class extends Generator {
     _add_parameter(answers) {
         const parameter = this.module_spec.spec[answers.spec_item][answers.spec_item_name] = {};
         parameter[answers.spec_item_type] = answers.spec_item_type == 'type:choice_binary' ? null : {};
+        parameter[answers.spec_item_type] = answers.spec_item_type == 'type:choice_single' ? [] : {};
 
         if (answers.spec_item_type == 'type:file' || answers.spec_item_type == 'type:list[file]') {
             parameter[answers.spec_item_type] = {

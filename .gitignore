@@ -62,3 +62,6 @@ typings/
 
 # yeoman files
 .yo-rc.json
+
+# VS code
+.vscode

@@ -128,36 +128,35 @@ module.exports = class extends Generator {
             type: 'input',
             name: 'integer_default',
             message: 'Default value',
-            filter: answer => Number(answer),
-            // TODO validate it's a **integer**
-            // validate: answer =>
+            filter: answer => this._is_integer(answer) ? Number(answer) : answer,
+            validate: answer => this._is_integer(answer) ? true : 'Not an integer'
         }, {
             when: answers => answers.spec_item == 'inputs' && answers.spec_item_type == 'type:number',
             type: 'input',
             name: 'number_default',
             message: 'Default value',
-            filter: answer => Number(answer),
-            // TODO validate it's a number
-            // validate: answer =>
+            filter: answer => this._is_number(answer) ? Number(answer) : answer,
+            validate: answer => this._is_number(answer) ? true : 'Not a number'
         }, {
             when: answers => answers.spec_item == 'inputs' && answers.spec_item_type == 'type:range',
             type: 'input',
             name: 'range_default',
             message: 'Default min value, default max value (e.g. 3.14, 47.11)',
-            filter: answer => { return {
-                lower_inclusive: Number(answer.split(',')[0].trim()),
-                upper_inclusive: Number(answer.split(',')[1].trim())
-            }}
-            // TODO validate it's two comma-seperated numbers
-            // validate: answer =>
+            filter: answer => this._is_number_tuple(answer) ? {
+                lower_inclusive: Number(answer.split(',')[0]),
+                upper_inclusive: Number(answer.split(',')[1])
+            } : answer,
+            validate: answer => this._is_number_tuple(answer) ? true : 'Invalid min,max'
         }, {
             when: answers => answers.spec_item == 'inputs' && answers.spec_item_type == 'type:choice_binary',
-            type: 'input',
+            type: 'list',
             name: 'choice_binary_default',
-            message: 'Default value (true or false)',
-            filter: answer => Boolean(answer)
-            // TODO validate it's boolean
-            // validate: answer =>
+            message: 'Default value',
+            choices: [
+                { name: 'True', value: true },
+                { name: 'False', value: false },
+            ],
+            default: true
         }, {
             when: answers => answers.spec_item == 'inputs' && answers.spec_item_type == 'type:choice_single',
             type: 'input',
@@ -167,6 +166,7 @@ module.exports = class extends Generator {
             // validate: answer =>
         }]);
 
+        // Recursively ask for further properties in the specification
         const done = this.async();
         return this.prompt(spec_prompt).then(answers => {
             if (answers.spec_item == 'done') {
@@ -228,6 +228,20 @@ module.exports = class extends Generator {
         }
 
         return parameter
+    }
+
+    _is_number(candidate) {
+        return !isNaN(candidate);
+    }
+
+    _is_integer(candidate) {
+        return this._is_number(candidate) && (candidate % 1) === 0;
+    }
+
+    _is_number_tuple(candidate) {
+        const first = candidate.split(',')[0];
+        const second = candidate.split(',')[1];
+        return this._is_number(first) && this._is_number(second);
     }
 
     configuring() { }

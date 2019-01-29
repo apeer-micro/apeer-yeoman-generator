@@ -141,6 +141,20 @@ module.exports = class extends Generator {
             filter: answer => this._is_integer(answer) ? Number(answer) : answer,
             validate: answer => this._is_integer(answer) ? true : 'Not an integer'
         }, {
+            when: answers => answers.spec_item == 'inputs' && answers.spec_item_type == 'type:integer',
+            type: 'input',
+            name: 'integer_min',
+            message: 'Lower bound (leave blank if unconstrained)',
+            filter: answer => this._is_integer(answer) ? Number(answer) : answer,
+            validate: answer => this._is_integer(answer) || (answer === '') ? true : 'Not an integer or blank'
+        }, {
+            when: answers => answers.spec_item == 'inputs' && answers.spec_item_type == 'type:integer',
+            type: 'input',
+            name: 'integer_max',
+            message: 'Upper bound (leave blank if unconstrained)',
+            filter: answer => this._is_integer(answer) ? Number(answer) : answer,
+            validate: answer => this._is_integer(answer) || (answer === '') ? true : 'Not an integer or blank'
+        }, {
             when: answers => answers.spec_item == 'inputs' && answers.spec_item_type == 'type:number',
             type: 'input',
             name: 'number_default',
@@ -211,10 +225,8 @@ module.exports = class extends Generator {
             parameter['default'] = answers.string_default;
         } else if (answers.spec_item_type == 'type:integer') {
             parameter['default'] = answers.integer_default;
-            this.log('int_min: ');
-            this.log(answers.integer_min);
-            this.log('int_max: ');
-            this.log(answers.integer_max);
+            parameter[answers.spec_item_type]['min'] = answers.integer_min !== '' ? answers.integer_min : undefined;
+            parameter[answers.spec_item_type]['max'] = answers.integer_max !== '' ? answers.integer_max : undefined;
         } else if (answers.spec_item_type == 'type:number') {
             parameter['default'] = answers.number_default;
         } else if (answers.spec_item_type == 'type:range') {
@@ -244,7 +256,7 @@ module.exports = class extends Generator {
     }
 
     _is_number(candidate) {
-        return !isNaN(candidate) && candidate !== undefined;
+        return !(candidate === '') && !isNaN(candidate) && candidate !== undefined;
     }
 
     _is_integer(candidate) {

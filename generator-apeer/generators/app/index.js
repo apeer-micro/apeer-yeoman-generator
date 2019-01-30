@@ -1,5 +1,7 @@
 ﻿var Generator = require('yeoman-generator')
 const yosay = require('yosay')
+const pygen = require('./python_generator.js')
+const validator = require('./validator.js')
 
 module.exports = class extends Generator {
     constructor(args, opts) {
@@ -141,53 +143,53 @@ module.exports = class extends Generator {
             type: 'input',
             name: 'integer_default',
             message: 'Default value',
-            filter: answer => this._is_integer(answer) ? Number(answer) : answer,
-            validate: answer => this._is_integer(answer) ? true : 'Not an integer'
+            filter: answer => validator.is_integer(answer) ? Number(answer) : answer,
+            validate: answer => validator.is_integer(answer) ? true : 'Not an integer'
         }, {
             when: answers => answers.spec_item == 'inputs' && answers.spec_item_type == 'type:integer',
             type: 'input',
             name: 'integer_min',
             message: 'Lower bound (leave blank if unconstrained)',
-            filter: answer => this._is_integer(answer) ? Number(answer) : answer,
-            validate: answer => this._is_integer(answer) || (answer === '') ? true : 'Not an integer or blank'
+            filter: answer => validator.is_integer(answer) ? Number(answer) : answer,
+            validate: answer => validator.is_integer(answer) || (answer === '') ? true : 'Not an integer or blank'
         }, {
             when: answers => answers.spec_item == 'inputs' && answers.spec_item_type == 'type:integer',
             type: 'input',
             name: 'integer_max',
             message: 'Upper bound (leave blank if unconstrained)',
-            filter: answer => this._is_integer(answer) ? Number(answer) : answer,
-            validate: answer => this._is_integer(answer) || (answer === '') ? true : 'Not an integer or blank'
+            filter: answer => validator.is_integer(answer) ? Number(answer) : answer,
+            validate: answer => validator.is_integer(answer) || (answer === '') ? true : 'Not an integer or blank'
         }, {
             when: answers => answers.spec_item == 'inputs' && answers.spec_item_type == 'type:number',
             type: 'input',
             name: 'number_default',
             message: 'Default value',
-            filter: answer => this._is_number(answer) ? Number(answer) : answer,
-            validate: answer => this._is_number(answer) ? true : 'Not a number'
+            filter: answer => validator.is_number(answer) ? Number(answer) : answer,
+            validate: answer => validator.is_number(answer) ? true : 'Not a number'
         }, {
             when: answers => answers.spec_item == 'inputs' && answers.spec_item_type == 'type:number',
             type: 'input',
             name: 'number_min',
             message: 'Lower bound (leave blank if unconstrained)',
-            filter: answer => this._is_number(answer) ? Number(answer) : answer,
-            validate: answer => this._is_number(answer) || (answer === '') ? true : 'Not an integer or blank'
+            filter: answer => validator.is_number(answer) ? Number(answer) : answer,
+            validate: answer => validator.is_number(answer) || (answer === '') ? true : 'Not an integer or blank'
         }, {
             when: answers => answers.spec_item == 'inputs' && answers.spec_item_type == 'type:number',
             type: 'input',
             name: 'number_max',
             message: 'Upper bound (leave blank if unconstrained)',
-            filter: answer => this._is_number(answer) ? Number(answer) : answer,
-            validate: answer => this._is_number(answer) || (answer === '') ? true : 'Not a number or blank'
+            filter: answer => validator.is_number(answer) ? Number(answer) : answer,
+            validate: answer => validator.is_number(answer) || (answer === '') ? true : 'Not a number or blank'
         }, {
             when: answers => answers.spec_item == 'inputs' && answers.spec_item_type == 'type:range',
             type: 'input',
             name: 'range_default',
             message: 'Default min,max (e.g. 3.14,47.11)',
-            filter: answer => this._is_number_tuple(answer) ? {
+            filter: answer => validator.is_number_tuple(answer) ? {
                 lower_inclusive: Number(answer.split(',')[0]),
                 upper_inclusive: Number(answer.split(',')[1])
             } : answer,
-            validate: answer => (typeof answer === 'object') || this._is_number_tuple(answer) ? true : 'Invalid min,max'
+            validate: answer => (typeof answer === 'object') || validator.is_number_tuple(answer) ? true : 'Invalid min,max'
         }, {
             when: answers => answers.spec_item == 'inputs' && answers.spec_item_type == 'type:choice_binary',
             type: 'list',
@@ -284,20 +286,6 @@ module.exports = class extends Generator {
         return parameter
     }
 
-    _is_number(candidate) {
-        return !(candidate === '') && !isNaN(candidate) && candidate !== undefined
-    }
-
-    _is_integer(candidate) {
-        return this._is_number(candidate) && (candidate % 1) === 0
-    }
-
-    _is_number_tuple(candidate) {
-        const first = candidate.split(',')[0]
-        const second = candidate.split(',')[1]
-        return this._is_number(first) && this._is_number(second)
-    }
-
     configuring() { }
 
     default() { }
@@ -326,67 +314,11 @@ module.exports = class extends Generator {
             this.destinationPath(),
             {
                 module_name: this.general_module_info.module_name,
-                module_inputs_adk: this._get_adk_inputs(this.module_spec.spec['inputs']),
-                module_outputs_adk: this._get_adk_outputs(this.module_spec.spec['outputs']),
-                module_inputs_yourcode: this._get_yourcode_input_parameters(this.module_spec.spec['inputs']),
-                module_outputs_yourcode: this._get_yourcode_output_parameters(this.module_spec.spec['outputs'])
+                module_inputs_adk: pygen.get_adk_inputs(this.module_spec.spec['inputs']),
+                module_outputs_adk: pygen.get_adk_outputs(this.module_spec.spec['outputs']),
+                module_inputs_yourcode: pygen.get_yourcode_input_parameters(this.module_spec.spec['inputs']),
+                module_outputs_yourcode: pygen.get_yourcode_output_parameters(this.module_spec.spec['outputs'])
             })
-    }
-
-    _get_adk_inputs(inputs) {
-        // user's code will be called like this:
-        //   outputs = your_code.run(inputs['cell_image'], inputs['table_name'])
-
-        var inputs_string = ''
-        Object.keys(inputs).forEach(function (input_key) {
-            inputs_string = inputs_string.concat('inputs[\'' + input_key + '\'], ');
-        })
-
-        // remove last comma and whitespace
-        return inputs_string.slice(0, -2)
-    }
-
-    _get_adk_outputs(outputs) {
-        // adk writes outputs like this:
-        //   adk.set_output('cell_count', outputs['cell_count'])
-        //   adk.set_file_output('mask_image', outputs['mask_image'])
-
-        var outputs_string = ''
-        Object.keys(outputs).forEach(function (output_key) {
-            var adk_method = outputs[output_key].hasOwnProperty('type:file') ? 'set_file_output' : 'set_output'
-            outputs_string = outputs_string.concat('adk.' + adk_method + '(\'' + output_key + '\', outputs[\'' + output_key + '\'])')
-            outputs_string = outputs_string.concat('\n    ')
-        })
-
-        // remove last newline character and whitespaces
-        return outputs_string.slice(0, -5)
-    }
-
-    _get_yourcode_input_parameters(inputs) {
-        // user's code accepts a parameter list like this:
-        //    def run(cell_image, table_name)
-
-        var input_string = ''
-        Object.keys(inputs).forEach(function (input_key) {
-            input_string = input_string.concat(input_key + ', ');
-        })
-
-        // remove last comma and whitespace
-        return input_string.slice(0, -2)
-    }
-
-    _get_yourcode_output_parameters(outputs) {
-        // user's code returns a dictionary like this:
-        //   return {'success': True, 'tinted_image': output_file_path}
-
-        var outputs_string = ''
-        Object.keys(outputs).forEach(function (output_key) {
-            outputs_string = outputs_string.concat('\'' + output_key + '\': ' + output_key + ', ')
-        })
-
-        // remove last comma and whitespace
-        outputs_string = outputs_string.slice(0, -2)
-        return 'return {' + outputs_string + '}'
     }
 
     conflicts() { }

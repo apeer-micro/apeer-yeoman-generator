@@ -1,4 +1,5 @@
-def run(<%- module_inputs_yourcode %>):
-    print('Hello from <%- module_name %>')
+def run(<%- module_inputs_python_yourcode %>):
 
-    <%- module_outputs_yourcode %>
+    # your processing code goes here ...
+
+    <%- module_outputs_python_yourcode %>

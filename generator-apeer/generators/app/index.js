@@ -1,6 +1,7 @@
 ﻿var Generator = require('yeoman-generator')
 const yosay = require('yosay')
 const pygen = require('./python_generator.js')
+const matlabgen = require('./matlab_generator.js')
 const validator = require('./validator.js')
 
 module.exports = class extends Generator {
@@ -303,22 +304,31 @@ module.exports = class extends Generator {
         switch (this.general_module_info.programming_language) {
             case 'python':
                 this.sourceRoot(this.templatePath() + '/python')
+                this.fs.copyTpl(
+                    this.templatePath(),
+                    this.destinationPath(),
+                    {
+                        module_name: this.general_module_info.module_name,
+                        module_inputs_python_adk: pygen.get_adk_inputs(this.module_spec.spec['inputs']),
+                        module_outputs_python_adk: pygen.get_adk_outputs(this.module_spec.spec['outputs']),
+                        module_inputs_python_yourcode: pygen.get_yourcode_input_parameters(this.module_spec.spec['inputs']),
+                        module_outputs_python_yourcode: pygen.get_yourcode_output_parameters(this.module_spec.spec['outputs'])
+                    })
                 break
             case 'matlab':
                 this.sourceRoot(this.templatePath() + '/matlab')
+                this.fs.copyTpl(
+                    this.templatePath(),
+                    this.destinationPath(),
+                    {
+                        module_name: this.general_module_info.module_name,
+                        module_inputs_matlab_adk: matlabgen.get_adk_inputs(this.module_spec.spec['inputs']),
+                        module_outputs_matlab_adk: matlabgen.get_adk_outputs(this.module_spec.spec['outputs']),
+                        module_inputs_matlab_yourcode: matlabgen.get_yourcode_input_parameters(this.module_spec.spec['inputs']),
+                        module_outputs_matlab_yourcode: matlabgen.get_yourcode_output_parameters(this.module_spec.spec['outputs'])
+                    })
                 break
         }
-
-        this.fs.copyTpl(
-            this.templatePath(),
-            this.destinationPath(),
-            {
-                module_name: this.general_module_info.module_name,
-                module_inputs_adk: pygen.get_adk_inputs(this.module_spec.spec['inputs']),
-                module_outputs_adk: pygen.get_adk_outputs(this.module_spec.spec['outputs']),
-                module_inputs_yourcode: pygen.get_yourcode_input_parameters(this.module_spec.spec['inputs']),
-                module_outputs_yourcode: pygen.get_yourcode_output_parameters(this.module_spec.spec['outputs'])
-            })
     }
 
     conflicts() { }
